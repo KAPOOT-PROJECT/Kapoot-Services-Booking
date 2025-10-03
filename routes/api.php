@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 | Booking API Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:api'])->group(function () {
+Route::middleware([AuthJwtMiddleware::class])->group(function () {
 
 
     Route::prefix('bookings')->group(function () {

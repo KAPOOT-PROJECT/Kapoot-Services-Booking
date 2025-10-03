@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use Illuminate\Http\Request;
+use App\Http\Requests\StoreBookingRequest;
+use Illuminate\Support\Facades\Http;
 
 class BookingController extends Controller
 {
@@ -12,22 +14,29 @@ class BookingController extends Controller
      */
     public function index()
     {
-        Booking::all();
+        return Booking::all();
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreBookingRequest $request)
     {
-        $reserve = Booking::create($request);
+        // 1. دریافت لیست providerهای فعال از سرویس provider-service
+        $response = Http::get(env('PROVIDER_SERVICE_URL', 'http://127.0.0.1:9000/api/availble-providers'));
+        $providers = $response->ok() ? $response->json('data') : [];
 
-        if (!$reserve) {
-            dd($request);
+        if (empty($providers)) {
+            return response()->json(['message' => 'هیچ سرویس‌دهنده فعالی یافت نشد'], 422);
         }
-        
-        return $reserve;
 
+
+
+        $data = $request->validated();
+
+        $booking = Booking::create($data);
+
+        return response()->json($booking, 201);
     }
 
     /**
