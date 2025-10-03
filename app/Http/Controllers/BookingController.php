@@ -6,9 +6,12 @@ use App\Models\Booking;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreBookingRequest;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class BookingController extends Controller
 {
+
     /**
      * Display a listing of the resource.
      */
@@ -22,8 +25,7 @@ class BookingController extends Controller
      */
     public function store(StoreBookingRequest $request)
     {
-        // 1. دریافت لیست providerهای فعال از سرویس provider-service
-        $response = Http::get(env('PROVIDER_SERVICE_URL', 'http://127.0.0.1:9000/api/availble-providers'));
+        $response = Http::get(config('services.provider_service.host') . config('services.provider_service.availble_endpoint'));
         $providers = $response->ok() ? $response->json('data') : [];
 
         if (empty($providers)) {
@@ -31,14 +33,33 @@ class BookingController extends Controller
         }
 
 
-
         $data = $request->validated();
+        $lockName = $providers[0]['id'];
+        $booking = null;
 
-        $booking = Booking::create($data);
+        $lock = Cache::lock($lockName, 10);
 
+        if ($lock->get()) {
+            try {
+                DB::beginTransaction();
+                $booking = Booking::create($data);
+                DB::commit();
+                //TODO  fire event for notify provider
+            } catch (\Throwable $e) {
+                DB::rollBack();
+            } finally {
+                $lock->release();
+            }
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'داداش جون من قفله تلاش نکن ستونم',
+                'data' => [],
+                'errors' => [],
+            ], 423);
+        }
         return response()->json($booking, 201);
     }
-
     /**
      * Display the specified resource.
      */

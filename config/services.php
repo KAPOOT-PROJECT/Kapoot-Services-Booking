@@ -34,5 +34,9 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+     'provider_service' => [
+        'host' => env('PROVIDER_SERVICE_HOST'),
+        'availble_endpoint' => env('PROVIDER_SERVICE_AVAILBLE_ENDPOINT')
+    ],
 
 ];
